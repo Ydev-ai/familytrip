@@ -80,25 +80,45 @@ export function FamilyCards({ initial }: { initial: Trip }) {
 
   return (
     <div>
-      <header className="mb-6 flex flex-wrap items-baseline gap-x-5 gap-y-2">
-        <p className="text-sm text-ink-600 flex items-center gap-2">
-          <Users className="w-4 h-4" />
-          <span>
-            총 <strong className="font-medium text-ink-900 num">{families.length}</strong> 가족 ·{" "}
-            <strong className="font-medium text-ink-900 num">{total}</strong> 명
-          </span>
-        </p>
-        <p className="text-caption num">
-          도착 확정{" "}
-          <strong className="text-dancheong-700 font-medium">
-            {confirmedCount}
-          </strong>{" "}
-          / {families.length} 가족 ·{" "}
-          <strong className="text-dancheong-700 font-medium">
-            {confirmedPeople}
-          </strong>{" "}
-          명
-        </p>
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-5 gap-y-3">
+        <div className="space-y-1.5">
+          <p className="text-sm text-ink-600 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>
+              총 <strong className="font-medium text-ink-900 num">{families.length}</strong> 가족 ·{" "}
+              <strong className="font-medium text-ink-900 num">{total}</strong> 명
+            </span>
+          </p>
+          <p className="text-caption num">
+            도착 확정{" "}
+            <strong className="text-dancheong-700 font-medium">
+              {confirmedCount}
+            </strong>{" "}
+            / {families.length} 가족 ·{" "}
+            <strong className="text-dancheong-700 font-medium">
+              {confirmedPeople}
+            </strong>{" "}
+            명
+          </p>
+        </div>
+        <label className="text-xs text-ink-600 flex items-center gap-2">
+          <span className="hidden sm:inline">내 이름 (RSVP 누를 때 기록)</span>
+          <span className="sm:hidden">내 이름</span>
+          <input
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              try {
+                window.localStorage.setItem(NAME_KEY, e.target.value);
+              } catch {
+                /* noop */
+              }
+            }}
+            placeholder="예: 혜숙"
+            maxLength={20}
+            className="px-2.5 py-1.5 bg-hanji-100 border border-ink-900/15 rounded-sm text-sm w-32 focus:outline-none focus:border-ink-900/50 transition-colors"
+          />
+        </label>
       </header>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {families.map((family, idx) => (
@@ -107,11 +127,6 @@ export function FamilyCards({ initial }: { initial: Trip }) {
             family={family}
             idx={idx}
             onToggleRsvp={() => toggleRsvp(family)}
-            name={name}
-            onChangeName={(v) => {
-              setName(v);
-              try { window.localStorage.setItem(NAME_KEY, v); } catch {}
-            }}
           />
         ))}
       </div>
@@ -123,14 +138,10 @@ function FamilyCard({
   family,
   idx,
   onToggleRsvp,
-  name,
-  onChangeName,
 }: {
   family: Family;
   idx: number;
   onToggleRsvp: () => void;
-  name: string;
-  onChangeName: (v: string) => void;
 }) {
   const c = colorClass[family.color ?? "ink"];
   const namesShown = family.members.length;
@@ -208,28 +219,18 @@ function FamilyCard({
         )}
       </ul>
 
-      <div className="mt-4 pt-3 border-t border-ink-900/10 space-y-2">
-        {family.arrivalNote && (
-          <p className="text-xs text-ink-600">⌚︎ {family.arrivalNote}</p>
-        )}
-        {status === "confirmed" && family.rsvpBy && (
-          <p className="text-xs text-dancheong-700 brush text-sm">
-            — {family.rsvpBy}
-          </p>
-        )}
-        {namesShown === 0 && (
-          <label className="block text-[11px] text-ink-500">
-            <span className="block mb-1">RSVP 응답할 때 내 이름 (선택)</span>
-            <input
-              value={name}
-              onChange={(e) => onChangeName(e.target.value)}
-              placeholder="예: 혜숙"
-              maxLength={20}
-              className="w-full px-2 py-1 bg-hanji-100 border border-ink-900/12 rounded-sm text-xs focus:outline-none focus:border-ink-900/40"
-            />
-          </label>
-        )}
-      </div>
+      {(family.arrivalNote || (status === "confirmed" && family.rsvpBy)) && (
+        <div className="mt-4 pt-3 border-t border-ink-900/10 space-y-1.5">
+          {family.arrivalNote && (
+            <p className="text-xs text-ink-600">⌚︎ {family.arrivalNote}</p>
+          )}
+          {status === "confirmed" && family.rsvpBy && (
+            <p className="brush text-base text-dancheong-700">
+              — {family.rsvpBy}
+            </p>
+          )}
+        </div>
+      )}
     </motion.article>
   );
 }
