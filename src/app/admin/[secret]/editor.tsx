@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash2, Save, Check, AlertCircle, Eye } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  Trash2,
+  Save,
+  Check,
+  AlertCircle,
+  Eye,
+  ChevronRight,
+} from "lucide-react";
 import type {
   Trip,
   ScheduleItem,
@@ -49,15 +58,35 @@ const EXPENSE_CATEGORIES: NonNullable<Expense["category"]>[] = [
   "기타",
 ];
 
-const TOC_SECTIONS: { id: string; label: string }[] = [
-  { id: "sec-copy", label: "제목 · 카피" },
-  { id: "sec-date", label: "날짜" },
-  { id: "sec-place", label: "장소 · 지도" },
-  { id: "sec-schedule", label: "일정" },
-  { id: "sec-families", label: "가족 · 도착 확인" },
-  { id: "sec-grocery", label: "장보기" },
-  // { id: "sec-budget", label: "회비 · 지출" }, // 회비 섹션 숨김 — 추후 다시 노출
-  { id: "sec-checklist", label: "준비물" },
+/**
+ * Admin 좌측 sidebar (데스크탑) · 상단 가로 tab bar (모바일) 구성.
+ * 한 번에 한 섹션만 풀스크린으로 편집 — Apple Settings / Linear 톤.
+ */
+type SectionId =
+  | "copy"
+  | "date"
+  | "place"
+  | "schedule"
+  | "families"
+  | "groceries"
+  | "checklist";
+
+interface SectionDef {
+  id: SectionId;
+  label: string;
+  kanji: string;
+  caption: string;
+}
+
+const SECTIONS: SectionDef[] = [
+  { id: "copy",      label: "첫 화면 글", kanji: "序", caption: "제목 · 부제 · 인사말" },
+  { id: "date",      label: "날짜와 시간", kanji: "日", caption: "시작 · 종료" },
+  { id: "place",     label: "모이는 곳",   kanji: "所", caption: "주소 · 지도" },
+  { id: "schedule",  label: "1박 2일 일정",kanji: "時", caption: "시간표" },
+  { id: "families",  label: "참석 가족",   kanji: "家", caption: "인원 · 도착 확인" },
+  { id: "groceries", label: "함께 사올 것",kanji: "市", caption: "장보기 분담" },
+  // { id: "budget",    label: "회비 · 지출", kanji: "金", caption: "납부·지출" }, // 회비 섹션 숨김 — 추후 다시 노출
+  { id: "checklist", label: "챙길 것",     kanji: "備", caption: "준비물" },
 ];
 
 export function AdminEditor({
@@ -70,6 +99,7 @@ export function AdminEditor({
   const [draft, setDraft] = useState<Trip>(initial);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [activeId, setActiveId] = useState<SectionId>("copy");
   const [, startTransition] = useTransition();
 
   function set<K extends keyof Trip>(key: K, value: Trip[K]) {
@@ -103,17 +133,53 @@ export function AdminEditor({
     }
   }
 
-  return (
-    <div className="space-y-8">
-      <SaveBar status={status} errorMsg={errorMsg} onSave={save} />
+  const activeSection =
+    SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
 
-      <TableOfContents />
+  /** 활성 섹션에 따라 한 번에 한 폼만 렌더 — Apple Settings 톤.
+   *  switch 로 명시적으로 활성 panel 만 평가해서 React 가 children 변경을 확실히 감지. */
+  function renderActivePanel(): React.ReactNode {
+    switch (activeId) {
+      case "copy":
+        return copyPanel;
+      case "date":
+        return datePanel;
+      case "place":
+        return placePanel;
+      case "schedule":
+        return (
+          <ScheduleEditor
+            items={draft.schedule}
+            onChange={(items) => set("schedule", items)}
+          />
+        );
+      case "families":
+        return (
+          <FamiliesEditor
+            families={draft.families}
+            onChange={(families) => set("families", families)}
+          />
+        );
+      case "groceries":
+        return (
+          <GroceryEditor
+            items={draft.groceries}
+            families={draft.families}
+            onChange={(items) => set("groceries", items)}
+          />
+        );
+      case "checklist":
+        return (
+          <ChecklistEditor
+            items={draft.checklist}
+            onChange={(items) => set("checklist", items)}
+          />
+        );
+    }
+  }
 
-      <Section
-        id="sec-copy"
-        title="첫 화면 글"
-        hint="가족들이 가장 먼저 보는 부분이에요. 제목·부제·인사말을 마음대로 바꿔보세요."
-      >
+  const copyPanel = (
+      <Panel section={activeSection}>
         <Field label="제목" hint="예: 우리 가족 1박 2일">
           <input
             value={draft.title}
@@ -121,11 +187,12 @@ export function AdminEditor({
             className="ed-input"
           />
         </Field>
-        <Field label="부제" hint="장소나 모임 한 줄 설명 (예: 어반스트림에서)">
+        <Field label="부제" hint="장소나 모임 한 줄 설명">
           <input
             value={draft.subtitle ?? ""}
             onChange={(e) => set("subtitle", e.target.value)}
             className="ed-input"
+            placeholder="예: 어반스트림에서"
           />
         </Field>
         <Field
@@ -134,7 +201,9 @@ export function AdminEditor({
         >
           <input
             value={draft.hero.headline}
-            onChange={(e) => set("hero", { ...draft.hero, headline: e.target.value })}
+            onChange={(e) =>
+              set("hero", { ...draft.hero, headline: e.target.value })
+            }
             className="ed-input"
             placeholder="예: 오랜만에, 한자리에."
           />
@@ -142,31 +211,34 @@ export function AdminEditor({
         <Field label="설명 한 줄" hint="인사말 밑에 작게 들어가는 안내문이에요.">
           <textarea
             value={draft.hero.sub ?? ""}
-            onChange={(e) => set("hero", { ...draft.hero, sub: e.target.value })}
+            onChange={(e) =>
+              set("hero", { ...draft.hero, sub: e.target.value })
+            }
             className="ed-input"
             rows={2}
             placeholder="예: 다 같이 모여 밥 먹고, 게임 하고, 산책 한 번 합시다."
           />
         </Field>
-      </Section>
+      </Panel>
+    );
 
-      <Section
-        id="sec-date"
-        title="날짜와 시간"
-        hint="언제 모이고 언제 끝나는지 선택해 주세요. 첫 화면의 카운트다운에 쓰입니다."
-      >
-        <div className="grid sm:grid-cols-2 gap-4">
+  const datePanel = (
+      <Panel section={activeSection}>
+        <div className="grid sm:grid-cols-2 gap-5">
           <Field label="시작" hint="모임이 시작되는 시각">
             <input
               type="datetime-local"
               value={isoToLocalInput(draft.startsAt)}
               onChange={(e) =>
-                set("startsAt", localInputToIso(e.target.value) || draft.startsAt)
+                set(
+                  "startsAt",
+                  localInputToIso(e.target.value) || draft.startsAt,
+                )
               }
               className="ed-input"
             />
             {draft.startsAt && (
-              <p className="text-xs text-ink-500 mt-1.5">
+              <p className="text-xs text-ink-500 mt-2 num">
                 ▸ {isoToKoreanPreview(draft.startsAt)}
               </p>
             )}
@@ -181,36 +253,38 @@ export function AdminEditor({
               className="ed-input"
             />
             {draft.endsAt && (
-              <p className="text-xs text-ink-500 mt-1.5">
+              <p className="text-xs text-ink-500 mt-2 num">
                 ▸ {isoToKoreanPreview(draft.endsAt)}
               </p>
             )}
           </Field>
         </div>
-      </Section>
+      </Panel>
+    );
 
-      <Section
-        id="sec-place"
-        title="모이는 곳"
-        hint="장소 이름과 주소를 넣으면 페이지에서 지도와 길찾기 버튼이 자동으로 만들어져요."
-      >
+  const placePanel = (
+      <Panel section={activeSection}>
         <Field label="장소 이름" hint="예: 어반스트림">
           <input
             value={draft.place.name}
-            onChange={(e) => set("place", { ...draft.place, name: e.target.value })}
+            onChange={(e) =>
+              set("place", { ...draft.place, name: e.target.value })
+            }
             className="ed-input"
           />
         </Field>
         <Field label="주소" hint="도로명 주소 그대로 넣으시면 됩니다.">
           <input
             value={draft.place.address ?? ""}
-            onChange={(e) => set("place", { ...draft.place, address: e.target.value })}
+            onChange={(e) =>
+              set("place", { ...draft.place, address: e.target.value })
+            }
             className="ed-input"
           />
         </Field>
         <Field
           label="좌표 (선택)"
-          hint="비워두면 주소로 자동 검색이 됩니다. 정확히 핀을 찍고 싶으면 카카오맵에서 어반스트림을 검색해 주소창의 숫자를 옮겨 적으세요."
+          hint="비워두면 주소로 자동 검색됩니다. 정확히 핀을 찍고 싶으면 카카오맵 좌표를 옮겨 적으세요."
         >
           <div className="grid sm:grid-cols-2 gap-3">
             <input
@@ -243,11 +317,13 @@ export function AdminEditor({
         </Field>
         <Field
           label="지도 링크 (선택)"
-          hint="카카오맵에서 장소 페이지 주소를 그대로 복사해 넣으면 '카카오맵' 버튼이 그쪽으로 이어집니다."
+          hint="카카오맵 장소 페이지 주소를 그대로 넣으면 '카카오맵' 버튼이 그쪽으로 이어집니다."
         >
           <input
             value={draft.place.mapUrl ?? ""}
-            onChange={(e) => set("place", { ...draft.place, mapUrl: e.target.value })}
+            onChange={(e) =>
+              set("place", { ...draft.place, mapUrl: e.target.value })
+            }
             className="ed-input"
             placeholder="https://map.kakao.com/..."
           />
@@ -256,11 +332,11 @@ export function AdminEditor({
           label="지도 직접 보여주기 (선택)"
           hint="페이지 안에 카카오 지도를 그대로 띄우고 싶을 때 사용합니다."
         >
-          <details className="text-xs text-ink-600 mb-2 bg-hanji-100/60 border border-ink-900/12 rounded-sm">
-            <summary className="cursor-pointer px-3 py-2 hover:bg-hanji-100">
+          <details className="text-xs text-ink-600 mb-2 bg-hanji-100/60 border border-ink-900/12 rounded-md overflow-hidden">
+            <summary className="cursor-pointer px-3 py-2.5 hover:bg-hanji-100 font-medium text-ink-800">
               어떻게 하나요? (눌러서 자세히 보기)
             </summary>
-            <ol className="px-4 pb-3 pt-1 space-y-1 list-decimal list-inside leading-relaxed">
+            <ol className="px-5 pb-3 pt-1 space-y-1 list-decimal list-outside leading-relaxed">
               <li>카카오맵 PC 사이트에서 어반스트림을 검색합니다.</li>
               <li>오른쪽 정보창 위 <strong>공유</strong> 버튼을 누릅니다.</li>
               <li>
@@ -282,79 +358,74 @@ export function AdminEditor({
             placeholder='<iframe src="..." ...></iframe>'
           />
           {draft.place.embedSrc && (
-            <p className="text-xs text-dancheong-700 mt-1.5 truncate">
-              ✓ 지도 코드가 적용되었어요
+            <p className="text-xs text-dancheong-700 mt-2 inline-flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" />
+              지도 코드가 적용되었어요
             </p>
           )}
         </Field>
-      </Section>
+      </Panel>
+    );
 
-      <ScheduleEditor
-        items={draft.schedule}
-        onChange={(items) => set("schedule", items)}
-      />
+  return (
+    <div className="admin-shell">
+      <TopBar status={status} errorMsg={errorMsg} onSave={save} />
 
-      <FamiliesEditor
-        families={draft.families}
-        onChange={(families) => set("families", families)}
-      />
-
-      <GroceryEditor
-        items={draft.groceries}
-        families={draft.families}
-        onChange={(items) => set("groceries", items)}
-      />
-
-      {/* 회비 편집은 추후 다시 노출 예정 — 데이터(draft.budget)는 그대로 보존 */}
-      {/*
-      <BudgetEditor
-        budget={draft.budget}
-        families={draft.families}
-        onChange={(b) => set("budget", b)}
-      />
-      */}
-
-      <ChecklistEditor
-        items={draft.checklist}
-        onChange={(items) => set("checklist", items)}
-      />
-
-      <SaveBar status={status} errorMsg={errorMsg} onSave={save} />
+      <div className="grid md:grid-cols-[260px_1fr] gap-6 md:gap-10 mt-6">
+        <SectionNav activeId={activeId} onSelect={setActiveId} />
+        <main className="min-w-0">
+          <motion.div
+            key={activeId}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+          >
+            {renderActivePanel()}
+          </motion.div>
+        </main>
+      </div>
 
       <style>{`
         .ed-input {
           width: 100%;
-          padding: 0.55rem 0.8rem;
+          padding: 0.7rem 0.9rem;
           background: var(--hanji-50);
           border: 1px solid rgba(20, 17, 13, 0.18);
-          border-radius: 4px;
+          border-radius: 6px;
           font-family: var(--font-serif);
-          font-size: 0.95rem;
+          font-size: 1rem;
           color: var(--ink-900);
-          transition: border-color 0.2s var(--ease-out-apple);
+          transition: border-color 0.18s var(--ease-out-apple),
+                      background 0.18s var(--ease-out-apple);
         }
         .ed-input:focus {
           outline: none;
-          border-color: rgba(20, 17, 13, 0.5);
+          border-color: var(--ink-900);
+          background: #ffffff;
         }
+        .ed-input::placeholder { color: rgba(70, 61, 49, 0.42); }
         .ed-btn {
           display: inline-flex; align-items: center; gap: 0.4rem;
-          padding: 0.45rem 0.8rem; font-size: 0.85rem;
+          padding: 0.5rem 0.85rem; font-size: 0.875rem;
           background: var(--hanji-100); color: var(--ink-900);
           border: 1px solid rgba(20, 17, 13, 0.18);
-          border-radius: 4px;
-          transition: background 0.2s var(--ease-out-apple);
+          border-radius: 6px;
+          transition: background 0.18s var(--ease-out-apple);
         }
         .ed-btn:hover { background: var(--hanji-200); }
         .ed-btn-danger { color: var(--maple-700); border-color: rgba(168, 58, 37, 0.3); }
         .ed-btn-danger:hover { background: rgba(168, 58, 37, 0.06); }
         .ed-row { display: flex; gap: 0.5rem; align-items: center; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; }
       `}</style>
     </div>
   );
 }
 
-function SaveBar({
+/* ─────────────────────────────────── TopBar (sticky 저장 헤더) */
+
+function TopBar({
   status,
   errorMsg,
   onSave,
@@ -364,33 +435,38 @@ function SaveBar({
   onSave: () => void;
 }) {
   return (
-    <div className="sticky top-0 z-30 -mx-6 sm:-mx-10 px-6 sm:px-10 py-4 bg-hanji-100/85 backdrop-blur-xl border-b border-ink-900/10 flex items-center justify-between gap-3">
-      <p className="text-sm text-ink-700 min-w-0">
-        {status === "saved" && (
-          <span className="text-dancheong-700 inline-flex items-center gap-1.5 font-medium">
-            <Check className="w-4 h-4" />
-            저장되었습니다 — 공개 페이지에 곧 반영됩니다
-          </span>
-        )}
-        {status === "error" && (
-          <span className="text-maple-700 inline-flex items-center gap-1.5 font-medium">
-            <AlertCircle className="w-4 h-4" />
-            저장 실패 · {errorMsg}
-          </span>
-        )}
-        {status === "idle" && (
-          <span className="text-ink-600">
-            바꾼 내용을 적용하려면 <strong className="text-ink-900">저장</strong>을 누르세요.
-          </span>
-        )}
-        {status === "saving" && (
-          <span className="text-ink-700">저장하는 중입니다…</span>
-        )}
-      </p>
+    <div className="sticky top-0 z-30 -mx-6 sm:-mx-10 px-6 sm:px-10 py-3.5 bg-hanji-100/85 backdrop-blur-xl border-b border-ink-900/10 flex items-center justify-between gap-3">
+      <div className="min-w-0 flex items-baseline gap-3 sm:gap-4">
+        <span className="brush text-xl sm:text-2xl text-maple-700 -rotate-1 shrink-0">
+          ✎ 수정
+        </span>
+        <p className="text-sm truncate min-w-0 hidden sm:block">
+          {status === "saved" && (
+            <span className="text-dancheong-700 inline-flex items-center gap-1.5 font-medium">
+              <Check className="w-4 h-4" />
+              저장되었습니다
+            </span>
+          )}
+          {status === "error" && (
+            <span className="text-maple-700 inline-flex items-center gap-1.5 font-medium">
+              <AlertCircle className="w-4 h-4" />
+              저장 실패 · {errorMsg}
+            </span>
+          )}
+          {status === "idle" && (
+            <span className="text-ink-500">
+              바꾼 내용은 <strong className="text-ink-900">저장</strong>을 누르면 반영됩니다.
+            </span>
+          )}
+          {status === "saving" && (
+            <span className="text-ink-700">저장 중…</span>
+          )}
+        </p>
+      </div>
       <div className="flex items-center gap-2 shrink-0">
         <a
           href="/"
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-ink-700 hover:text-ink-900 hover:bg-ink-900/5 rounded-sm transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 text-sm text-ink-700 hover:text-ink-900 hover:bg-ink-900/5 rounded-md transition-colors"
           title="공개 페이지에서 결과 미리보기"
         >
           <Eye className="w-4 h-4" />
@@ -400,7 +476,7 @@ function SaveBar({
           type="button"
           onClick={onSave}
           disabled={status === "saving"}
-          className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-dancheong-700 text-hanji-50 hover:bg-dancheong-600 disabled:opacity-50 rounded-sm text-sm sm:text-base font-medium transition-colors shadow-[0_2px_0_rgba(20,17,13,0.1)]"
+          className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-dancheong-700 text-hanji-50 hover:bg-dancheong-600 disabled:opacity-50 rounded-md text-sm sm:text-base font-medium transition-colors shadow-[0_2px_0_rgba(20,17,13,0.1)]"
         >
           <Save className="w-4 h-4" />
           저장
@@ -410,55 +486,125 @@ function SaveBar({
   );
 }
 
-function Section({
-  id,
-  title,
-  hint,
+/* ─────────────────────────────────── SectionNav (sidebar / 가로 tabs) */
+
+function SectionNav({
+  activeId,
+  onSelect,
+}: {
+  activeId: SectionId;
+  onSelect: (id: SectionId) => void;
+}) {
+  return (
+    <nav aria-label="섹션 이동">
+      {/* 모바일: sticky 가로 pill bar */}
+      <div className="md:hidden -mx-6 px-6 sticky top-[64px] z-20 bg-hanji-100/85 backdrop-blur-xl py-3 border-b border-ink-900/8">
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {SECTIONS.map((s) => {
+            const active = s.id === activeId;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onSelect(s.id)}
+                aria-pressed={active}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm transition-colors ${
+                  active
+                    ? "bg-ink-900 text-hanji-50"
+                    : "bg-hanji-50 text-ink-700 border border-ink-900/15 hover:bg-hanji-200"
+                }`}
+              >
+                <span className="font-serif">{s.kanji}</span>
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 데스크탑: 좌측 sidebar */}
+      <ul className="hidden md:flex md:flex-col gap-1 md:sticky md:top-24 self-start">
+        {SECTIONS.map((s) => {
+          const active = s.id === activeId;
+          return (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(s.id)}
+                aria-pressed={active}
+                className={`group w-full flex items-center gap-3 px-3 py-3 rounded-md text-left transition-all ${
+                  active
+                    ? "bg-ink-900 text-hanji-50"
+                    : "text-ink-700 hover:bg-ink-900/[0.04] hover:text-ink-900"
+                }`}
+              >
+                <span
+                  className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-md font-serif text-xl ${
+                    active
+                      ? "bg-hanji-50/15 text-hanji-50"
+                      : "bg-hanji-50 text-maple-700 border border-ink-900/10"
+                  }`}
+                  aria-hidden
+                >
+                  {s.kanji}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium tracking-tight truncate">
+                    {s.label}
+                  </span>
+                  <span
+                    className={`block text-xs mt-0.5 truncate ${
+                      active ? "text-hanji-200" : "text-ink-500"
+                    }`}
+                  >
+                    {s.caption}
+                  </span>
+                </span>
+                <ChevronRight
+                  className={`w-3.5 h-3.5 shrink-0 transition-opacity ${
+                    active ? "opacity-100" : "opacity-0 group-hover:opacity-50"
+                  }`}
+                />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/* ─────────────────────────────────── Panel (한 섹션 contents wrapper) */
+
+function Panel({
+  section,
   children,
 }: {
-  id?: string;
-  title: string;
-  hint?: string;
+  section: SectionDef;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="hanji-card p-6 sm:p-8 scroll-mt-24">
-      <header className="mb-5 pb-4 border-b border-ink-900/10">
-        <h2 className="font-serif text-xl sm:text-2xl text-ink-900 tracking-tight">
-          {title}
-        </h2>
-        {hint && (
-          <p className="text-sm text-ink-600 mt-1.5 leading-relaxed">{hint}</p>
-        )}
+    <section className="hanji-card p-6 sm:p-8 lg:p-10">
+      <header className="mb-7 flex items-end gap-4">
+        <span
+          className="font-serif text-5xl sm:text-6xl text-maple-700/85 leading-none select-none shrink-0"
+          aria-hidden
+        >
+          {section.kanji}
+        </span>
+        <div className="min-w-0">
+          <p className="text-eyebrow">{section.caption}</p>
+          <h2 className="font-serif text-2xl sm:text-3xl text-ink-900 tracking-tight mt-1">
+            {section.label}
+          </h2>
+        </div>
       </header>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }
 
-function TableOfContents() {
-  return (
-    <nav
-      aria-label="섹션 목차"
-      className="hanji-card p-4 sm:p-5"
-    >
-      <p className="text-sm text-ink-700 mb-2.5">
-        ✎ 바꾸고 싶은 곳으로 바로 가세요
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        {TOC_SECTIONS.map((s) => (
-          <a
-            key={s.id}
-            href={`#${s.id}`}
-            className="px-3.5 py-2 text-sm text-ink-900 bg-hanji-100 hover:bg-ink-900 hover:text-hanji-50 border border-ink-900/15 rounded-full transition-colors"
-          >
-            {s.label}
-          </a>
-        ))}
-      </div>
-    </nav>
-  );
-}
+/* ─────────────────────────────────── Field (라벨 + hint + input wrapper) */
 
 function Field({
   label,
@@ -471,11 +617,11 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-sm text-ink-800 font-medium mb-1.5">
+      <span className="block text-sm sm:text-base text-ink-900 font-medium mb-1.5">
         {label}
       </span>
       {hint && (
-        <span className="block text-xs text-ink-500 mb-2 leading-relaxed">
+        <span className="block text-xs sm:text-sm text-ink-500 mb-2 leading-relaxed">
           {hint}
         </span>
       )}
