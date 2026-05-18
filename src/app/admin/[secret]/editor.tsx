@@ -56,7 +56,7 @@ const TOC_SECTIONS: { id: string; label: string }[] = [
   { id: "sec-schedule", label: "일정" },
   { id: "sec-families", label: "가족 · 도착 확인" },
   { id: "sec-grocery", label: "장보기" },
-  { id: "sec-budget", label: "회비 · 지출" },
+  // { id: "sec-budget", label: "회비 · 지출" }, // 회비 섹션 숨김 — 추후 다시 노출
   { id: "sec-checklist", label: "준비물" },
 ];
 
@@ -305,11 +305,14 @@ export function AdminEditor({
         onChange={(items) => set("groceries", items)}
       />
 
+      {/* 회비 편집은 추후 다시 노출 예정 — 데이터(draft.budget)는 그대로 보존 */}
+      {/*
       <BudgetEditor
         budget={draft.budget}
         families={draft.families}
         onChange={(b) => set("budget", b)}
       />
+      */}
 
       <ChecklistEditor
         items={draft.checklist}

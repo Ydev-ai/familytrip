@@ -8,7 +8,7 @@ import { PlaceCard } from "@/components/place-card";
 import { FamilyCards } from "@/components/family-cards";
 import { ChecklistBoard } from "@/components/checklist-board";
 import { GroceryBoard } from "@/components/grocery-board";
-import { BudgetBoard } from "@/components/budget-board";
+// import { BudgetBoard } from "@/components/budget-board"; // 회비 섹션 숨김 — 추후 다시 노출
 import { InkMountain, ScrollHeaderArt } from "@/components/ink-art";
 
 export const dynamic = "force-dynamic";
@@ -103,9 +103,12 @@ export default async function Home() {
           <GroceryBoard initial={trip} />
         </SectionAnchor>
 
+        {/* 회비 섹션은 추후 다시 노출 예정 — 데이터/API/컴포넌트는 그대로 보존 */}
+        {/*
         <SectionAnchor id="budget" kanji="金" eyebrow="회비" title="모이고 쓰는 돈">
           <BudgetBoard initial={trip} />
         </SectionAnchor>
+        */}
 
         <SectionAnchor id="checklist" kanji="備" eyebrow="준비" title="함께 챙길 것">
           <ChecklistBoard initial={trip} />

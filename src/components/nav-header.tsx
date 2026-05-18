@@ -15,7 +15,7 @@ const ITEMS: NavItem[] = [
   { id: "schedule",  label: "일정",       kanji: "日" },
   { id: "families",  label: "가족",       kanji: "家" },
   { id: "groceries", label: "장보기",     kanji: "市" },
-  { id: "budget",    label: "회비",       kanji: "金" },
+  // { id: "budget",    label: "회비",       kanji: "金" }, // 회비 섹션 숨김 — 추후 다시 노출
   { id: "checklist", label: "준비물",     kanji: "備" },
 ];
 
