@@ -1,0 +1,294 @@
+@import "tailwindcss";
+
+/*
+ * 한지·먹 × Apple precision
+ *
+ * 디자인 원칙:
+ *  1. 한지 베이스 위에 먹 잉크 — 동양 정서
+ *  2. Apple 류 정밀한 spacing rhythm (4·8·12·16·24·32·48·64·96·128 px)
+ *  3. Apple cubic-bezier(0.32, 0.72, 0, 1) — 부드러운 감속
+ *  4. Typography: SF Pro Display 같은 modular scale (1.25 minor third)
+ *  5. 색은 절제, 강조는 한 번에 하나만 (단풍 또는 단청)
+ */
+
+:root {
+  /* ── 한지 (paper) ─────────────────────────────────── */
+  --hanji-50:  #fbf8f1;
+  --hanji-100: #f5efe1;
+  --hanji-200: #ebe1ca;
+  --hanji-300: #d9c9a8;
+  --hanji-400: #b8a47e;
+
+  /* ── 먹 (ink) ───────────────────────────────────── */
+  --ink-50:  #f3efe7;
+  --ink-200: #c6bdab;
+  --ink-400: #8a7b65;
+  --ink-500: #6b5d4a;
+  --ink-600: #463d31;
+  --ink-700: #2e271f;
+  --ink-800: #1f1a14;
+  --ink-900: #14110d;
+
+  /* ── 단청 청록 (accent — primary) ─────────────────── */
+  --dancheong-500: #3c8270;
+  --dancheong-600: #2d6655;
+  --dancheong-700: #1f4a3f;
+
+  /* ── 단풍 주홍 (accent — alert / seal) ────────────── */
+  --maple-500: #c47556;
+  --maple-600: #a85a3e;
+  --maple-700: #8a3a25;
+
+  /* ── 청자 (cool — neutral accent) ────────────────── */
+  --celadon-500: #6a8a82;
+  --celadon-600: #50736b;
+
+  /* ── 자목 (deep plum) ────────────────────────────── */
+  --plum-500: #6b3a52;
+  --plum-600: #54283e;
+
+  /* ── 금박 (highlight) ────────────────────────────── */
+  --gold-500: #b89556;
+  --gold-600: #957642;
+
+  --background: var(--hanji-100);
+  --foreground: var(--ink-900);
+
+  /* ── motion ──────────────────────────────────────── */
+  --ease-out-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-in-out-apple: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.16, 1.36, 0.32, 1);
+}
+
+@theme inline {
+  --color-hanji-50:  var(--hanji-50);
+  --color-hanji-100: var(--hanji-100);
+  --color-hanji-200: var(--hanji-200);
+  --color-hanji-300: var(--hanji-300);
+  --color-hanji-400: var(--hanji-400);
+
+  --color-ink-50:  var(--ink-50);
+  --color-ink-200: var(--ink-200);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+
+  --color-dancheong-500: var(--dancheong-500);
+  --color-dancheong-600: var(--dancheong-600);
+  --color-dancheong-700: var(--dancheong-700);
+
+  --color-maple-500: var(--maple-500);
+  --color-maple-600: var(--maple-600);
+  --color-maple-700: var(--maple-700);
+
+  --color-celadon-500: var(--celadon-500);
+  --color-celadon-600: var(--celadon-600);
+
+  --color-plum-500: var(--plum-500);
+  --color-plum-600: var(--plum-600);
+
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --font-sans:  var(--font-gowun), "Gowun Batang", serif;
+  --font-serif: var(--font-noto-serif), "Noto Serif KR", serif;
+  --font-pen:   var(--font-nanum-pen), "Nanum Pen Script", cursive;
+}
+
+/* ── reset + base ─────────────────────────────────── */
+
+html {
+  /* 어른 친화 — JS에서 --font-scale 만 바꾸면 모든 rem 텍스트가 비례 확대.
+     컨테이너도 rem 기반이라 함께 reflow 되어 레이아웃은 깨지지 않는다. */
+  font-size: calc(16px * var(--font-scale, 1));
+  scroll-behavior: smooth;
+  scroll-padding-top: 80px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  background-color: var(--hanji-100);
+  color: var(--ink-900);
+  font-family: var(--font-serif);
+  font-feature-settings: "kern" 1, "palt" 1;
+  letter-spacing: -0.012em;
+}
+
+body {
+  background-image:
+    radial-gradient(at 18% 8%,  rgba(184, 164, 126, 0.14) 0px, transparent 50%),
+    radial-gradient(at 82% 92%, rgba(168, 90, 62, 0.07)   0px, transparent 55%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.45  0 0 0 0 0.30  0 0 0 0.10 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: auto, auto, 240px 240px;
+  background-attachment: fixed;
+}
+
+/* ── 타이포그래피 ──────────────────────────────────── */
+
+.text-display {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: clamp(2.75rem, 8vw, 5.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+}
+.text-headline {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+}
+.text-title {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+.text-body {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  letter-spacing: -0.005em;
+}
+.text-caption {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: var(--ink-500);
+}
+.text-eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  font-weight: 500;
+}
+
+/* ── 한지 카드 (raised paper) ──────────────────────── */
+.hanji-card {
+  position: relative;
+  background-color: var(--hanji-50);
+  border: 1px solid rgba(70, 61, 49, 0.08);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 rgba(20, 17, 13, 0.04),
+    0 8px 28px -14px rgba(20, 17, 13, 0.18),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  transition: transform 0.4s var(--ease-out-apple),
+              box-shadow 0.4s var(--ease-out-apple);
+}
+.hanji-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.55  0 0 0 0 0.45  0 0 0 0 0.30  0 0 0 0.06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: multiply;
+  opacity: 0.65;
+  border-radius: inherit;
+}
+.hanji-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 1px 0 rgba(20, 17, 13, 0.04),
+    0 18px 40px -14px rgba(20, 17, 13, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* ── 도장 seal ────────────────────────────────────── */
+.ink-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--maple-700);
+  background-color: rgba(168, 58, 37, 0.06);
+  border: 1.5px solid var(--maple-700);
+  padding: 0.3rem 0.55rem;
+  letter-spacing: 0.3em;
+  font-size: 0.65rem;
+  line-height: 1;
+  border-radius: 2px;
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* ── 먹 라인 구분자 ──────────────────────────────── */
+.ink-divider {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    rgba(20, 17, 13, 0.35) 20%,
+    rgba(20, 17, 13, 0.35) 80%,
+    transparent
+  );
+}
+.ink-divider-soft {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    rgba(20, 17, 13, 0.18) 30%,
+    rgba(20, 17, 13, 0.18) 70%,
+    transparent
+  );
+}
+
+/* ── 손글씨 ──────────────────────────────────────── */
+.brush {
+  font-family: var(--font-pen);
+  letter-spacing: 0.02em;
+}
+
+/* ── focus ring (a11y, Apple-ish) ─────────────────── */
+:where(button, a, input, textarea, select, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--ink-900);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── 모션 환원 ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── 스크롤바 ────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--hanji-100); }
+::-webkit-scrollbar-thumb {
+  background: var(--ink-400);
+  border-radius: 5px;
+  border: 2px solid var(--hanji-100);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink-600); }
+
+/* ── selection ───────────────────────────────────── */
+::selection {
+  background: var(--ink-900);
+  color: var(--hanji-50);
+}
+
+/* ── number ticker (countdown / money) ────────────── */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}

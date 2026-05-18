@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "family-trip-dev",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "/Users/sunwoo_y/Desktop/가족여행"
+    }
+  ]
+}
